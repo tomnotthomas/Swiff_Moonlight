@@ -35,11 +35,15 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs depr
 win32 {
     contains(QT_ARCH, i386) {
         LIBS += -L$$PWD/../libs/windows/lib/x86
+        LIBS += -L$$PWD/../libs_ssmn/windows/lib/x86
         INCLUDEPATH += $$PWD/../libs/windows/include/x86
+        INCLUDEPATH += $$PWD/../libs_ssmn/windows/include/x86
     }
     contains(QT_ARCH, x86_64) {
         LIBS += -L$$PWD/../libs/windows/lib/x64
+        LIBS += -L$$PWD/../libs_ssmn/windows/lib/x64
         INCLUDEPATH += $$PWD/../libs/windows/include/x64
+        INCLUDEPATH += $$PWD/../libs_ssmn/windows/include/x64
     }
     contains(QT_ARCH, arm64) {
         LIBS += -L$$PWD/../libs/windows/lib/arm64
@@ -54,8 +58,10 @@ win32 {
 }
 macx {
     INCLUDEPATH += $$PWD/../libs/mac/include
+    INCLUDEPATH += $$PWD/../libs_ssmn/mac/include
     INCLUDEPATH += $$PWD/../libs/mac/Frameworks/SDL2.framework/Versions/A/Headers
     INCLUDEPATH += $$PWD/../libs/mac/Frameworks/SDL2_ttf.framework/Versions/A/Headers
+    LIBS += -L$$PWD/../libs_ssmn/mac/lib
     LIBS += -L$$PWD/../libs/mac/lib -F$$PWD/../libs/mac/Frameworks
 
     # QMake doesn't handle framework-style includes correctly on its own
@@ -145,7 +151,8 @@ unix:!macx {
     }
 }
 win32 {
-    LIBS += -llibssl -llibcrypto -lSDL2 -lSDL2_ttf -lavcodec -lavutil -lopus -ldxgi -ld3d11
+    DEFINES += CURL_STATICLIB
+    LIBS += -llibssl -llibcrypto -lSDL2 -lSDL2_ttf -lavcodec -lavutil -lopus -ldxgi -ld3d11 -llibcurl
     CONFIG += ffmpeg
 }
 win32:!winrt {
@@ -154,6 +161,10 @@ win32:!winrt {
 macx {
     LIBS += -lssl -lcrypto -lavcodec.61 -lavutil.59 -lopus -framework SDL2 -framework SDL2_ttf
     LIBS += -lobjc -framework VideoToolbox -framework AVFoundation -framework CoreVideo -framework CoreGraphics -framework CoreMedia -framework AppKit -framework Metal -framework QuartzCore
+
+    # For libcurl
+    # DEFINES += CURL_STATICLIB
+    LIBS += -lcurl -lz -lnghttp2 -framework SystemConfiguration
 
     # For libsoundio
     LIBS += -framework CoreAudio -framework AudioUnit
