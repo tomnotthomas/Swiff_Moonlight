@@ -210,7 +210,9 @@ SOURCES += \
     gui/sdlgamepadkeynavigation.cpp \
     streaming/video/overlaymanager.cpp \
     backend/systemproperties.cpp \
-    wm.cpp
+    wm.cpp \
+    ssmn/curlrequest.cpp \
+    ssmn/ssmnbackendapi.cpp
 
 HEADERS += \
     backend/nvaddress.h \
@@ -245,7 +247,9 @@ HEADERS += \
     settings/mappingmanager.h \
     gui/sdlgamepadkeynavigation.h \
     streaming/video/overlaymanager.h \
-    backend/systemproperties.h
+    backend/systemproperties.h \
+    ssmn/curlrequest.h \
+    ssmn/ssmnbackendapi.h
 
 # Platform-specific renderers and decoders
 ffmpeg {

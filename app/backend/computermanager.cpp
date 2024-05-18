@@ -346,6 +346,7 @@ QHostAddress ComputerManager::getBestGlobalAddressV6(QVector<QHostAddress> &addr
 
 void ComputerManager::startPolling()
 {
+    // TODO: here servers list needs to be loaded from the backend
     QWriteLocker lock(&m_Lock);
 
     if (++m_PollingRef > 1) {

@@ -20,7 +20,7 @@ public:
     virtual ~GlobalCommandLineParser();
 
     ParseResult parse(const QStringList &args);
-
+    QStringList parseBackendArguments(const QStringList &args, QString& address, std::uint16_t& httpPort, std::uint16_t& httpsPort);
 };
 
 class QuitCommandLineParser

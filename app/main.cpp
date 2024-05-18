@@ -43,6 +43,7 @@
 #include "streaming/session.h"
 #include "settings/streamingpreferences.h"
 #include "gui/sdlgamepadkeynavigation.h"
+#include "ssmn/ssmnbackendapi.h"
 
 #if !defined(QT_DEBUG) && defined(Q_OS_WIN32)
 // Log to file for release Windows builds
@@ -535,8 +536,14 @@ int main(int argc, char *argv[])
 
     QGuiApplication app(argc, argv);
 
+
     GlobalCommandLineParser parser;
-    GlobalCommandLineParser::ParseResult commandLineParserResult = parser.parse(app.arguments());
+    QString backend_url;
+    std::uint16_t http_port;
+    std::uint16_t https_port;
+    QStringList cmdLineArgs = parser.parseBackendArguments(app.arguments(), backend_url, http_port, https_port);
+    ssmn::SsmnBackendApi::instance()->setRemoteAddress(backend_url.toStdString(), http_port);
+    GlobalCommandLineParser::ParseResult commandLineParserResult = parser.parse(cmdLineArgs);
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::ListRequested:
 #ifdef USE_CUSTOM_LOGGER
@@ -696,7 +703,7 @@ int main(int argc, char *argv[])
             initialView = "qrc:/gui/CliStartStreamSegue.qml";
             StreamingPreferences* preferences = StreamingPreferences::get();
             StreamCommandLineParser streamParser;
-            streamParser.parse(app.arguments(), preferences);
+            streamParser.parse(cmdLineArgs, preferences);
             QString host    = streamParser.getHost();
             QString appName = streamParser.getAppName();
             auto launcher   = new CliStartStream::Launcher(host, appName, preferences, &app);
@@ -707,7 +714,7 @@ int main(int argc, char *argv[])
         {
             initialView = "qrc:/gui/CliQuitStreamSegue.qml";
             QuitCommandLineParser quitParser;
-            quitParser.parse(app.arguments());
+            quitParser.parse(cmdLineArgs);
             auto launcher = new CliQuitStream::Launcher(quitParser.getHost(), &app);
             engine.rootContext()->setContextProperty("launcher", launcher);
             break;
@@ -716,7 +723,7 @@ int main(int argc, char *argv[])
         {
             initialView = "qrc:/gui/CliPair.qml";
             PairCommandLineParser pairParser;
-            pairParser.parse(app.arguments());
+            pairParser.parse(cmdLineArgs);
             auto launcher = new CliPair::Launcher(pairParser.getHost(), pairParser.getPredefinedPin(), &app);
             engine.rootContext()->setContextProperty("launcher", launcher);
             break;
@@ -724,7 +731,7 @@ int main(int argc, char *argv[])
     case GlobalCommandLineParser::ListRequested:
         {
             ListCommandLineParser listParser;
-            listParser.parse(app.arguments());
+            listParser.parse(cmdLineArgs);
             auto launcher = new CliListApps::Launcher(listParser.getHost(), listParser, &app);
             launcher->execute(new ComputerManager(StreamingPreferences::get()));
             hasGUI = false;

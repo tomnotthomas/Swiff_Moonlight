@@ -206,6 +206,49 @@ GlobalCommandLineParser::ParseResult GlobalCommandLineParser::parse(const QStrin
     }
 }
 
+QStringList GlobalCommandLineParser::parseBackendArguments(const QStringList &args, QString& address,
+                                                           std::uint16_t& httpPort, std::uint16_t& httpsPort)
+{
+    const QStringList localArgs { "backend_url", "backend_http_port", "backend_https_port" };
+    QStringList result;
+    httpPort = 0;
+    httpsPort = 0;
+    address = "";
+    bool found = false;
+
+    for (const auto& cmdLineArg : args) {
+        for (const auto& localArg : localArgs) {
+            if (cmdLineArg.contains(localArg)) {
+                found = true;
+
+                QStringList parts = cmdLineArg.split('=');
+
+                if (parts.size() == 2) {
+                    if (parts.at(0) == "backend_url") {
+                        address = parts.at(1);
+                    }
+                    else if (parts.at(0) == "backend_http_port") {
+                        httpPort = parts.at(1).toUShort();
+                    }
+                    else if (parts.at(0) == "backend_https_port") {
+                        httpsPort = parts.at(1).toUShort();
+                    }
+                }
+
+                break;
+            }
+        }
+
+        if (!found) {
+            result.append(cmdLineArg);
+        }
+
+        found = false;
+    }
+
+    return result;
+}
+
 QuitCommandLineParser::QuitCommandLineParser()
 {
 }
@@ -488,7 +531,7 @@ void StreamCommandLineParser::parse(const QStringList &args, StreamingPreference
 
     // Resolve --performance-overlay option
     preferences->showPerformanceOverlay = parser.getToggleOptionValue("performance-overlay", preferences->showPerformanceOverlay);
-    
+
     // Resolve --capture-system-keys option
     if (parser.isSet("capture-system-keys")) {
         preferences->captureSysKeysMode = mapValue(m_CaptureSysKeysModeMap, parser.getChoiceOptionValue("capture-system-keys"));
