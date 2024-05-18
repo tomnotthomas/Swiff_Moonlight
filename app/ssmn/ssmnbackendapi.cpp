@@ -25,9 +25,34 @@ void SsmnBackendApi::remoteUnregister() {
   doPostRequest(kApiUnRegister, args);
 }
 
-void SsmnBackendApi::serverList() {
+std::list<std::string> SsmnBackendApi::getServerList() {
   arg_map args;
-  doPostRequest(kApiServerList, args);
+  std::string response = doPostRequest(kApiServerList, args);
+  std::list<std::string> result;
+
+  if (!response.empty()) {
+      try {
+        nlohmann::json j =  nlohmann::json::parse(response.c_str());
+        auto result_array { j.at("result").get<nlohmann::json::array_t>() };
+
+        for (const auto& arr : result_array) {
+          for (const auto& item : arr) {
+            std::string str;
+            item.at("ip_address").get_to(str);
+            result.emplace_back(std::move(str));
+          }
+        }
+      } catch (std::exception& e) {
+          qDebug() << "wrong response from server\n"
+                   << response.c_str() << "\n"
+                   << "what: " << e.what();
+      }
+
+  } else {
+      qDebug() << "Remote address is empty!";
+  }
+
+  return result;
 }
 
 std::string SsmnBackendApi::getSessionId()
@@ -60,13 +85,14 @@ bool SsmnBackendApi::validateSessionId(const std::string& session_id)
   std::string response = doPostRequest(kApiValidateSessionId, args);
   std::string message;
 
-  try {
-    nlohmann::json j =  nlohmann::json::parse(response.c_str());
-    message = j["result"]["message"];
-  } catch (...) {
-    qDebug() << "wrong response from server";
+  if (!response.empty()) {
+    try {
+      nlohmann::json j =  nlohmann::json::parse(response.c_str());
+      message = j["result"]["message"];
+    } catch (...) {
+      qDebug() << "wrong response from server";
+    }
   }
-
   qDebug() << "message " << message.c_str();
   return message == "ok";
 }

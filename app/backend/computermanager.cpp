@@ -12,6 +12,8 @@
 
 #include <random>
 
+#include "ssmn/ssmnbackendapi.h"
+
 #define SER_HOSTS "hosts"
 #define SER_HOSTS_BACKUP "hostsbackup"
 
@@ -346,13 +348,12 @@ QHostAddress ComputerManager::getBestGlobalAddressV6(QVector<QHostAddress> &addr
 
 void ComputerManager::startPolling()
 {
-    // TODO: here servers list needs to be loaded from the backend
     QWriteLocker lock(&m_Lock);
 
     if (++m_PollingRef > 1) {
         return;
     }
-
+#if 0
     if (m_Prefs->enableMdns) {
         // Start an MDNS query for GameStream hosts
         m_MdnsServer.reset(new QMdnsEngine::Server());
@@ -369,6 +370,14 @@ void ComputerManager::startPolling()
     }
     else {
         qWarning() << "mDNS is disabled by user preference";
+    }
+#endif
+
+    auto list = ssmn::SsmnBackendApi::instance()->getServerList();
+
+    for (const auto& val : list) {
+        qDebug() << "Adding " << val.c_str();
+        addNewHostManually(QString::fromStdString(val));
     }
 
     // Start polling threads for each known host

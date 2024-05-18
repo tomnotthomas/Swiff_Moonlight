@@ -3,6 +3,7 @@
 
 #include <string>
 #include <cstdint>
+#include <list>
 #include <map>
 
 namespace ssmn {
@@ -27,7 +28,7 @@ namespace ssmn {
               mRemotePort = port;
             }
 
-            void setAddress(const std::string& address) {
+            void setLocalAddress(const std::string& address) {
                 mLocalAddress = address;
             }
 
@@ -37,7 +38,7 @@ namespace ssmn {
 
             void remoteRegister();
             void remoteUnregister();
-            void serverList();
+            std::list<std::string> getServerList();
             std::string getSessionId();
             bool validateSessionId(const std::string& session_id);
         private:
