@@ -1,4 +1,5 @@
 #include "computermodel.h"
+#include "ssmn/ssmnbackendapi.h"
 
 #include <QThreadPool>
 
@@ -216,6 +217,8 @@ void ComputerModel::testConnectionForComputer(int)
 void ComputerModel::pairComputer(int computerIndex, QString pin)
 {
     Q_ASSERT(computerIndex < m_Computers.count());
+    ssmn::SsmnBackendApi* backend = ssmn::SsmnBackendApi::instance();
+    backend->setSessionPin(m_Computers[computerIndex]->name.toStdString(), pin.toStdString());
 
     m_ComputerManager->pairHost(m_Computers[computerIndex], pin);
 }

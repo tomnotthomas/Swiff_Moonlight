@@ -1,7 +1,16 @@
 #include "ssmnbackendapi.h"
 #include "curlrequest.h"
 #include <nlohmann/json.hpp>
+
+#ifdef __MOONLIGHT__ /* for moonlight */
 #include <QDebug>
+#define LOG_DEBUG qDebug()
+#define LOG_ERROR qWarning()
+#else /* for sunshine */
+#include "logging.h"
+#define LOG_DEBUG BOOST_LOG(debug)
+#define LOG_ERROR BOOST_LOG(error)
+#endif
 
 using namespace ssmn;
 
@@ -16,122 +25,115 @@ SsmnBackendApi::~SsmnBackendApi()
 }
 
 void SsmnBackendApi::remoteRegister() {
-  arg_map args =  { {"title", mComputerName}, {"ip_address", mLocalAddress} };
-  doPostRequest(kApiRegister, args);
+    arg_map args =  { {"title", mComputerName}, {"ip_address", mLocalAddress} };
+    doPostRequest(kApiRegister, args);
 }
 
 void SsmnBackendApi::remoteUnregister() {
-  arg_map args =  { {"title", mComputerName}, {"ip_address", mLocalAddress} };
-  doPostRequest(kApiUnRegister, args);
+    arg_map args =  { {"title", mComputerName}, {"ip_address", mLocalAddress} };
+    doPostRequest(kApiUnRegister, args);
 }
 
 std::list<std::string> SsmnBackendApi::getServerList() {
-  arg_map args;
-  std::string response = doPostRequest(kApiServerList, args);
-  std::list<std::string> result;
+    arg_map args;
+    std::string response = doPostRequest(kApiServerList, args);
+    std::list<std::string> result;
 
-  if (!response.empty()) {
-      try {
-        nlohmann::json j =  nlohmann::json::parse(response.c_str());
-        auto result_array { j.at("result").get<nlohmann::json::array_t>() };
+    if (!response.empty()) {
+        try {
+            nlohmann::json j =  nlohmann::json::parse(response.c_str());
+            auto result_array { j.at("result").get<nlohmann::json::array_t>() };
 
-        for (const auto& arr : result_array) {
-          for (const auto& item : arr) {
-            std::string str;
-            item.at("ip_address").get_to(str);
-            result.emplace_back(std::move(str));
-          }
+            for (const auto& arr : result_array) {
+                for (const auto& item : arr) {
+                    std::string str;
+                    item.at("ip_address").get_to(str);
+                    result.emplace_back(std::move(str));
+                }
+            }
+        } catch (std::exception& e) {
+            LOG_ERROR << "wrong response from server\n"
+                      << response.c_str() << "\n"
+                      << "what: " << e.what();
         }
-      } catch (std::exception& e) {
-          qDebug() << "wrong response from server\n"
-                   << response.c_str() << "\n"
-                   << "what: " << e.what();
-      }
 
-  } else {
-      qDebug() << "Remote address is empty!";
-  }
-
-  return result;
-}
-
-std::string SsmnBackendApi::getSessionId()
-{
-  arg_map args =  { {"pc_name", mComputerName} };
-  std::string response = doPostRequest(kApiSessions, args);
-  std::string session_id;
-
-  if (!response.empty()) {
-    try {
-      nlohmann::json j =  nlohmann::json::parse(response.c_str());
-      session_id = j["result"]["session_id"];
-    } catch (std::exception& e) {
-      qDebug() << "wrong response from server\n"
-               << response.c_str() << "\n"
-               << "what: " << e.what();
+    } else {
+        LOG_DEBUG << "Remote address is empty!";
     }
 
-    qDebug() << "session id " << session_id.c_str();
-  } else {
-      qDebug() << "Remote address is empty!";
-  }
-
-  return session_id;
+    return result;
 }
 
-bool SsmnBackendApi::validateSessionId(const std::string& session_id)
+bool SsmnBackendApi::setSessionPin(const std::string& server_name, const std::string& pin)
 {
-  arg_map args =  { {"session_id", session_id}, {"pc_name", mComputerName} };
-  std::string response = doPostRequest(kApiValidateSessionId, args);
-  std::string message;
+    arg_map args =  { {"pc_name", server_name }, {"pin", pin } };
+    std::string response = doPostRequest(kApiSetPin, args);
+    std::string message;
 
-  if (!response.empty()) {
     try {
-      nlohmann::json j =  nlohmann::json::parse(response.c_str());
-      message = j["result"]["message"];
+        nlohmann::json j =  nlohmann::json::parse(response.c_str());
+        message = j["result"]["message"];
     } catch (...) {
-      qDebug() << "wrong response from server";
+        LOG_ERROR << "wrong response from server";
     }
-  }
-  qDebug() << "message " << message.c_str();
-  return message == "ok";
+
+    LOG_DEBUG << "message " << message.c_str();
+    return message == "ok";
+}
+
+std::string SsmnBackendApi::getSessionPin(const std::string& server_name)
+{
+    arg_map args =  { {"pc_name", server_name.empty() ? mComputerName : server_name } };
+    std::string response = doPostRequest(kApiGetPin, args);
+    std::string pin;
+
+    if (!response.empty()) {
+        try {
+            nlohmann::json j =  nlohmann::json::parse(response.c_str());
+            pin = j["result"]["pin"];
+        } catch (...) {
+            LOG_ERROR << "wrong response from server";
+        }
+    }
+    LOG_DEBUG << "pin " << pin.c_str();
+    return pin;
 }
 
 std::string SsmnBackendApi::doPostRequest(const std::string &api, arg_map &args)
 {
-  std::string readBuffer;
+    std::string readBuffer;
 
-  if (mRemotePort > 0) {
-    if (!mRemoteAddress.empty()) {
-      std::string address = mRemoteAddress + api;
-        qDebug() << "Sending request to " << address.c_str();
-                                                             // fill headers
-      std::vector<std::string> headersList = {
-        //                "Authorization: " + sessionKey,
-        "User-Agent: SSMNPCClient/V1.0",
-        "Content-Type: application/x-www-form-urlencoded"
-      };
+    if (mRemotePort > 0) {
+        if (!mRemoteAddress.empty()) {
+            std::string address = mRemoteAddress + api;
+            LOG_DEBUG << "Sending request to " << address.c_str();
+                // fill headers
+            std::vector<std::string> headersList = {
+                //                "Authorization: " + sessionKey,
+                "User-Agent: SSMNPCClient/V1.0",
+                "Content-Type: application/x-www-form-urlencoded"
+            };
 
-      CURLcode retValue = CURLE_OK;
-      std::string postData;
+            CURLcode retValue = CURLE_OK;
+            std::string postData;
 
-      for (const auto &i : args) {
-        postData.append("&" + i.first);
-        postData.append("=" + i.second);
-      }
+            for (const auto &i : args) {
+                postData.append("&" + i.first);
+                postData.append("=" + i.second);
+            }
 
-      qDebug() << "postData: ['" << postData.c_str() << "']";
+            LOG_DEBUG << "postData: ['" << postData.c_str() << "']";
 
-      readBuffer = CurlRequest::PostUrl(address, postData, headersList, &retValue,
-        3, 20000L);
+            readBuffer = CurlRequest::PostUrl(address, postData, headersList, &retValue,
+                                              3, 20000L);
 
-      qDebug() << "result: " << readBuffer.c_str();
+            LOG_DEBUG << "result: " << readBuffer.c_str();
+        } else {
+            LOG_DEBUG << "Remote address is empty!";
+        }
     } else {
-      qDebug() << "Remote address is empty!";
+        LOG_DEBUG << "Remote port is 0!";
     }
-  } else {
-    qDebug() << "Remote port is 0!";
-  }
 
-  return readBuffer;
+    return readBuffer;
 }
