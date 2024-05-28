@@ -59,6 +59,10 @@ CenteredGridView {
             errorDialog.text = error
             errorDialog.helpText = ""
             errorDialog.open()
+        } else {
+            var component = Qt.createComponent("AppView.qml")
+            var appView = component.createObject(stackView, {"computerIndex": 0, "objectName": model.name, "showHiddenGames": true})
+            stackView.push(appView)
         }
     }
 
@@ -75,6 +79,15 @@ CenteredGridView {
             }
 
             errorDialog.open()
+        } else {
+            /*var pin = computerModel.generatePinString()
+
+            // Kick off pairing in the background
+            computerModel.pairComputer(0, pin)
+
+            // Display the pairing dialog
+            pairDialog.pin = pin
+            pairDialog.open()*/
         }
     }
 
@@ -111,6 +124,7 @@ CenteredGridView {
     model: computerModel
 
     delegate: NavigableItemDelegate {
+        id: itDelegate
         width: 300; height: 320;
         grid: pcGrid
 
@@ -174,6 +188,7 @@ CenteredGridView {
                     enabled: false
                 }
                 NavigableMenuItem {
+                    id: allAppsItem
                     parentMenu: pcContextMenu
                     text: qsTr("View All Apps")
                     onTriggered: {

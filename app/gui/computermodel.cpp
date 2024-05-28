@@ -234,9 +234,15 @@ void ComputerModel::handleComputerStateChanged(NvComputer* computer)
 
     // Reset the model if the structural layout of the list has changed
     if (m_Computers != newComputerList) {
+      /* TODO: Prototype only! */
+        bool doPair = rowCount() == 0;
         beginResetModel();
         m_Computers = newComputerList;
         endResetModel();
+
+        if (doPair) {
+            pairComputer(0, generatePinString());
+        }
     }
     else {
         // Let the view know that this specific computer changed

@@ -205,6 +205,14 @@ CenteredGridView {
                 wrapMode: Text.Wrap
                 elide: Text.ElideRight
             }
+
+            onLoaded: {
+                console.log("onContentItemChanged " + appNameText.text)
+
+                if (appNameText.text == "Desktop") {
+                    launchOrResumeSelectedApp(true)
+                }
+            }
         }
 
         function launchOrResumeSelectedApp(quitExistingApp)

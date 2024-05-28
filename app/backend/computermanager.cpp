@@ -163,7 +163,7 @@ ComputerManager::ComputerManager(StreamingPreferences* prefs)
         settings.endArray();
         hosts = settings.beginReadArray(SER_HOSTS);
     }
-
+#if 0
     // Inflate our hosts from QSettings
     for (int i = 0; i < hosts; i++) {
         settings.setArrayIndex(i);
@@ -171,6 +171,7 @@ ComputerManager::ComputerManager(StreamingPreferences* prefs)
         m_KnownHosts[computer->uuid] = computer;
         m_LastSerializedHosts[computer->uuid] = *computer;
     }
+#endif
     settings.endArray();
 
     // Fetch latest compatibility data asynchronously
