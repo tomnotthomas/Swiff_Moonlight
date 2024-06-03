@@ -4,6 +4,7 @@
 
 #include <QMap>
 #include <QString>
+#include <QUrl>
 
 class GlobalCommandLineParser
 {
@@ -20,7 +21,7 @@ public:
     virtual ~GlobalCommandLineParser();
 
     ParseResult parse(const QStringList &args);
-    QStringList parseBackendArguments(const QStringList &args, QString& address, std::uint16_t& httpPort, std::uint16_t& httpsPort);
+    QMap<QString, QString> parseBackendArguments(const QUrl& url);
 };
 
 class QuitCommandLineParser

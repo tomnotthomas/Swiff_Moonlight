@@ -374,12 +374,11 @@ void ComputerManager::startPolling()
     }
 #endif
 
-    auto list = ssmn::SsmnBackendApi::instance()->getServerList();
-
-    for (const auto& val : list) {
-        qDebug() << "Adding " << val.c_str();
-        addNewHostManually(QString::fromStdString(val));
-    }
+    std::string server_ip;
+    // Prototype only!!!
+    server_ip = ssmn::SsmnBackendApi::instance()->localAddress();
+    qDebug() << "Adding " << server_ip.c_str();
+    addNewHostManually(QString::fromStdString(server_ip));
 
     // Start polling threads for each known host
     QMapIterator<QString, NvComputer*> i(m_KnownHosts);

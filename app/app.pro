@@ -3,10 +3,10 @@ CONFIG += c++11
 DEFINES += __MOONLIGHT__
 
 unix:!macx {
-    TARGET = moonlight
+    TARGET = swiff
 } else {
     # On macOS, this is the name displayed in the global menu bar
-    TARGET = Moonlight
+    TARGET = Swiff
 }
 
 include(../globaldefs.pri)

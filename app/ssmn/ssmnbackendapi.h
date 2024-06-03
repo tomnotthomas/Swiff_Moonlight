@@ -28,6 +28,7 @@ public:
         mRemotePort = port;
     }
 
+    // For moonlight it used for remote sunshine from custom url
     void setLocalAddress(const std::string& address) {
         mLocalAddress = address;
     }
@@ -41,6 +42,15 @@ public:
     std::list<std::string> getServerList();
     bool setSessionPin(const std::string& server_name, const std::string& pin);
     std::string getSessionPin(const std::string& server_name = "");
+    std::string computerName() const
+    {
+        return mComputerName;
+    }
+
+    std::string localAddress() const
+    {
+        return mLocalAddress;
+    }
 private:
     explicit SsmnBackendApi();
     ~SsmnBackendApi();

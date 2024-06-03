@@ -11,6 +11,7 @@
 #include <QCursor>
 #include <QElapsedTimer>
 #include <QTemporaryFile>
+#include <QFileOpenEvent>
 
 // Don't let SDL hook our main function, since Qt is already
 // doing the same thing. This needs to be before any headers
@@ -275,32 +276,55 @@ LONG WINAPI UnhandledExceptionHandler(struct _EXCEPTION_POINTERS *ExceptionInfo)
 
 #endif
 
+class SwiffApplication : public QGuiApplication {
+public:
+    SwiffApplication(int& argc, char** argv)
+        : QGuiApplication(argc, argv)
+    {
+        initSettings();
+    }
+
+    bool event(QEvent* event) override
+    {
+        if (event->type() == QEvent::FileOpen) {
+            QFileOpenEvent* openEvent = static_cast<QFileOpenEvent*>(event);
+            QSettings settings;
+            settings.setValue("startup_url", openEvent->url());
+        }
+
+        return QGuiApplication::event(event);
+    }
+
+    static void initSettings() {
+        // Set the app version for the QCommandLineParser's showVersion() command
+        QCoreApplication::setApplicationVersion(VERSION_STR);
+
+        // Set these here to allow us to use the default QSettings constructor.
+        // These also ensure that our cache directory is named correctly. As such,
+        // it is critical that these be called before Path::initialize().
+        QCoreApplication::setOrganizationName("Moonlight Game Streaming Project");
+        QCoreApplication::setOrganizationDomain("moonlight-stream.com");
+        QCoreApplication::setApplicationName("Moonlight");
+
+        if (QFile(QDir::currentPath() + "/portable.dat").exists()) {
+            QSettings::setDefaultFormat(QSettings::IniFormat);
+            QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, QDir::currentPath());
+            QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, QDir::currentPath());
+
+            // Initialize paths for portable mode
+            Path::initialize(true);
+        } else {
+            // Initialize paths for standard installation
+            Path::initialize(false);
+        }
+    }
+};
+
 int main(int argc, char *argv[])
 {
     SDL_SetMainReady();
 
-    // Set the app version for the QCommandLineParser's showVersion() command
-    QCoreApplication::setApplicationVersion(VERSION_STR);
-
-    // Set these here to allow us to use the default QSettings constructor.
-    // These also ensure that our cache directory is named correctly. As such,
-    // it is critical that these be called before Path::initialize().
-    QCoreApplication::setOrganizationName("Moonlight Game Streaming Project");
-    QCoreApplication::setOrganizationDomain("moonlight-stream.com");
-    QCoreApplication::setApplicationName("Moonlight");
-
-    if (QFile(QDir::currentPath() + "/portable.dat").exists()) {
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, QDir::currentPath());
-        QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, QDir::currentPath());
-
-        // Initialize paths for portable mode
-        Path::initialize(true);
-    }
-    else {
-        // Initialize paths for standard installation
-        Path::initialize(false);
-    }
+    SwiffApplication::initSettings();
 
     // Override the default QML cache directory with the one we chose
     if (qEnvironmentVariableIsEmpty("QML_DISK_CACHE_PATH")) {
@@ -534,15 +558,36 @@ int main(int argc, char *argv[])
     SDL_SetHint(SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING, "0");
 #endif
 
-    QGuiApplication app(argc, argv);
-
+    SwiffApplication app(argc, argv);
 
     GlobalCommandLineParser parser;
-    QString backend_url;
-    std::uint16_t http_port;
-    std::uint16_t https_port;
-    QStringList cmdLineArgs = parser.parseBackendArguments(app.arguments(), backend_url, http_port, https_port);
-    ssmn::SsmnBackendApi::instance()->setRemoteAddress(backend_url.toStdString(), http_port);
+
+    QSettings settings;
+    QString startupUrl = settings.value("startup_url").toString();
+    qDebug() << "startupUrl " << startupUrl;
+
+    if (!startupUrl.isEmpty()) {
+        QUrl url(startupUrl);
+        QMap<QString, QString> args = parser.parseBackendArguments(url);
+
+        if (args.size() >= 4) {
+            ssmn::SsmnBackendApi* api = ssmn::SsmnBackendApi::instance();
+            QString backendUrl = args.value("backend_url");
+
+            if (!backendUrl.startsWith("http://")) {
+                backendUrl.prepend("http://");
+            }
+
+            api->setRemoteAddress(backendUrl.toStdString(),
+                args.value("backend_http_port").toUShort());
+            api->setComputerName(args.value("server_name").toStdString());
+            api->setLocalAddress(args.value("server_ip").toStdString());
+        }
+
+        settings.remove("startup_url");
+    }
+
+    QStringList cmdLineArgs = app.arguments();
     GlobalCommandLineParser::ParseResult commandLineParserResult = parser.parse(cmdLineArgs);
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::ListRequested:

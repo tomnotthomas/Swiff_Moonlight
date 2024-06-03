@@ -2,6 +2,7 @@
 
 #include <QCommandLineParser>
 #include <QRegularExpression>
+#include <QUrlQuery>
 
 #if defined(Q_OS_WIN)
 #include <qt_windows.h>
@@ -206,44 +207,15 @@ GlobalCommandLineParser::ParseResult GlobalCommandLineParser::parse(const QStrin
     }
 }
 
-QStringList GlobalCommandLineParser::parseBackendArguments(const QStringList &args, QString& address,
-                                                           std::uint16_t& httpPort, std::uint16_t& httpsPort)
-{
-    const QStringList localArgs { "backend_url", "backend_http_port", "backend_https_port" };
-    QStringList result;
-    httpPort = 0;
-    httpsPort = 0;
-    address = "";
-    bool found = false;
+QMap<QString, QString> GlobalCommandLineParser::parseBackendArguments(
+    const QUrl &url) {
+    QMap<QString, QString> result;
+    QUrlQuery query(url);
 
-    for (const auto& cmdLineArg : args) {
-        for (const auto& localArg : localArgs) {
-            if (cmdLineArg.contains(localArg)) {
-                found = true;
-
-                QStringList parts = cmdLineArg.split('=');
-
-                if (parts.size() == 2) {
-                    if (parts.at(0) == "backend_url") {
-                        address = parts.at(1);
-                    }
-                    else if (parts.at(0) == "backend_http_port") {
-                        httpPort = parts.at(1).toUShort();
-                    }
-                    else if (parts.at(0) == "backend_https_port") {
-                        httpsPort = parts.at(1).toUShort();
-                    }
-                }
-
-                break;
-            }
-        }
-
-        if (!found) {
-            result.append(cmdLineArg);
-        }
-
-        found = false;
+  // For Each QPair
+    for (int i = 0; i < query.queryItems().size(); i++) {
+      result.insert(query.queryItems().at(i).first,
+                    query.queryItems().at(i).second);
     }
 
     return result;
