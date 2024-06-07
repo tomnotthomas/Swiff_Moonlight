@@ -46,6 +46,9 @@
 #include "gui/sdlgamepadkeynavigation.h"
 #include "ssmn/ssmnbackendapi.h"
 
+#define USE_CUSTOM_LOGGER
+#define LOG_TO_FILE
+
 #if !defined(QT_DEBUG) && defined(Q_OS_WIN32)
 // Log to file for release Windows builds
 #define USE_CUSTOM_LOGGER
@@ -333,12 +336,13 @@ int main(int argc, char *argv[])
 
 #ifdef USE_CUSTOM_LOGGER
 #ifdef LOG_TO_FILE
-    QDir tempDir(Path::getLogDir());
+    QDir tempDir(QDir::homePath()); //Path::getLogDir());
     s_LoggerFile = new QFile(tempDir.filePath(QString("Moonlight-%1.log").arg(QDateTime::currentSecsSinceEpoch())));
     if (s_LoggerFile->open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream(stderr) << "Redirecting log output to " << s_LoggerFile->fileName() << Qt::endl;
         s_LoggerStream.setDevice(s_LoggerFile);
     }
+    qDebug() << "Log file is" << s_LoggerFile->fileName();
 #endif
 
     s_LoggerTime.start();
